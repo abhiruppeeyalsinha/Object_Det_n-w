@@ -1,0 +1,62 @@
+Important: You must also update your Struct.h file to add the two new fields to the _Template_ structure. The updated _Template_ struct should look like this:
+
+cpp
+// In Struct.h, update the _Template_ structure to include:
+
+struct _Template_
+{
+	Mat Template;
+	UInt8_t ClassID;
+	UInt16_t FrameCnt;
+	UInt8_t StaticCnt;        // NEW: counter for consecutive static frames
+	Point LastCenter;         // NEW: previous frame's center point for movement detection
+	Point CenterPoint;
+	Rect BoundingBox;
+	Rect ROIBox;
+	Rect OverLapBox;
+};
+Also ensure your _AIData_ struct in Struct.h has all necessary fields:
+
+cpp
+// In Struct.h, ensure _AIData_ structure has these fields:
+
+struct _AIData_
+{
+	UInt8_t Type;              // 0 = AI detection, 1 = Template match
+	UInt8_t ClassID;
+	float Confidance;
+	Point CenterPoint;
+	Rect BoundingBox;
+};
+And the _TargetData_ struct should be:
+
+cpp
+// In Struct.h, ensure _TargetData_ structure has these fields:
+
+struct _TargetData_
+{
+	UInt8_t ValidData;
+	UInt8_t ClassID;
+	float Confidance;
+	Point CenterPoint;
+	Rect BoundingBox;
+};
+Summary of changes across all files:
+
+ObjDetection.h: No changes needed to the class declaration itself since the _Template_ struct is defined in Struct.h. The class uses vector<struct _Template_> which will automatically pick up the new fields.
+
+Struct.h: Added two new fields to _Template_:
+
+UInt8_t StaticCnt - tracks consecutive static frames
+
+Point LastCenter - stores previous position for movement calculation
+
+ObjDetection.cu: Complete rewrite of templateMatch() function with:
+
+Multi-target independent refresh (each template refreshes based on its own FrameCnt)
+
+Static target rejection (drops templates that don't move for StaticFrameThreshold frames)
+
+Proper initialization of new fields when creating templates
+
+Carrying forward static counter and position during template refresh
