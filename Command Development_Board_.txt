@@ -1,0 +1,615 @@
+//old compilation
+g++ trt_drone_detection_v3_FP16.cpp -o Drone_Detection_V3_FP16 -I/usr/include/opencv4/ -I/usr/include/aarch64-linux-gnu -I/usr/local/cuda-11.4/include/ -L/usr/lib/aarch64-linux-gnu/ -L/usr/local/cuda-11.4/lib64/ -pthread -lopencv_core -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_videoio -lopencv_dnn -lcudart -lnvinfer -lnvinfer_plugin
+
+sudo ssh -X nano@192.168.55.1
+
+sudo ./Drone_Detection_V1 /home/nano/Model/new_drone_model.engine /home/nano/Videos/Hexa_output_vid.mp4
+
+#/home/nano/dec19_newModel.engine
+
+model convert into engine mdoel file format	
+/usr/src/tensorrt/bin/trtexec
+
+#transfer the file from system to board
+sudo scp /home/abhirupsinha/Desktop/yolov5/AI_Model/final_yolo5s.onnx  nano@192.168.55.1:~/
+
+
+#transfer the file from IP board to system
+sudo scp nano@192.168.55.1:/mnt/sdcard/IPCard-V1.3.1/Res/IPCard_Data_16May.tar.xz ./
+
+#transfer the file from orin board to system
+sudo scp ./jetson_offline_pkgs.zip nvidia@192.168.55.1:~/
+
+
+remove the lock from the file
+sudo chown -R abhirupsinha ./*
+
+
+set time and date on ipcard while connect with internet-------
+sudo timedatectl set-time 2024-12-20
+sudo timedatectl set-time hh:mm:ss
+
+--- Update time and date
+sudo timedatectl set-ntp false // make the automatic system time false
+-> sudo timedatectl status							
+-> sudo timedatectl set-ntp 0
+-> sudo timedatectl set-time YYYY-MM-DD				
+-> sudo timedatectl set-time HH:MM:SS				
+-> sudo timedatectl status
+
+
+#how to check the video file h and w in terminal
+
+ffprobe -v error -select_streams v:0 -show_entries stream=width,height,colorspace -of csv=s=x:p=0 output_video.avi 
+
+
+Convert the onnx model into tensorrt engine model file
+
+/usr/local/TensorRT/TensorRT-8.5.3.1/targets/x86_64-linux-gnu/bin/trtexec --onnx=/home/abhirupsinha/Desktop/p101/yolov5/yolov5/Drone/drone_detection_final_train_v1_s_model/drone_detection_Jan_11_v1/models/drone_11Jan_best_v1.onnx --saveEngine=new_droneDetection_11jan_200.engine --batch=1
+
+//New verification command for the engine model
+trtexec --loadEngine=/home/abhirupsinha/Desktop/P101/Seeker_AI_Models/Drone_Detection_Train_Jan16_M_model/Jan_18_additional_100_epochs/weights/IR_faster_inference_may21.engine --verbose
+
+
+
+//Convert the onnx model into tensorrt engine model file
+
+export LD_LIBRARY_PATH=/usr/local/TensorRT-8.5.3.1/targets/x86_64-linux-gnu/lib:$LD_LIBRARY_PATH
+
+/usr/local/TensorRT/bin/trtexec --onnx=/home/abhirupsinha/p101/yolov5/Drone/drone_detection_July_20_additional_epochs/Drone_detection_July_20/weights/best.onnx --saveEngine=Aug04_2025_best_fp16.engine --fp16 --explicitBatch --inputIOFormats=fp16:chw --outputIOFormats=fp16:chw --useSpinWait
+ 
+//Command for faster inference 
+/usr/local/TensorRT/TensorRT-8.5.3.1/targets/x86_64-linux-gnu/bin/trtexec --onnx=/home/abhirupsinha/p101/yolov5/Drone/drone_detection_July_20_additional_epochs/Drone_detection_July_20/weights/best.onnx --saveEngine=faster_inference.engine --fp16 --explicitBatch --inputIOFormats=fp16:chw --outputIOFormats=fp16:chw --workspace=2048 --tacticSources=+CUBLAS,+CUBLAS_LT --timingCacheFile=trt_timing.cache --separateProfileRun
+
+//Faster version with active GPU clocks & cudaGraph
+
+/usr/local/TensorRT/TensorRT-8.5.3.1/targets/x86_64-linux-gnu/bin/trtexec --onnx=/home/abhirupsinha/p101/yolov5/Drone/drone_detection_July_20_additional_epochs/Drone_detection_July_20/weights/best.onnx --saveEngine=faster_inference_best.engine --fp16 --explicitBatch --inputIOFormats=fp16:chw --outputIOFormats=fp16:chw --workspace=4096 --tacticSources=+CUBLAS,+CUBLAS_LT --timingCacheFile=trt_timing.cache --separateProfileRun --useCudaGraph --useSpinWait --threads --verbose --best
+
+/usr/local/TensorRT/TensorRT-8.5.3.1/targets/x86_64-linux-gnu/bin/trtexec --loadEngine=Drone_Jan02.engine --verbose
+w
+
+
+convert onnx model into engine
+ /usr/local/TensorRT-8.5.3.1/targets/x86_64-linux-gnu/bin/trtexec  --onnx=100_epochs_18Jan.onnx --saveEngine=new_save.engine --batch=1
+
+
+System installed TensorRt path :/usr/local/TensorRT-8.5.3.1/bin/trtexec
+
+#Onnx model conversion from ONNX to Engine
+
+sudo /usr/src/tensorrt/bin/trtexec --onnx=100_epochs_18Jan_demo_fixed.onnx --saveEngine=100_epochs_18Jan_demo_fixed.engine --fp16 --workspace=4096
+
+#to validate the engine model file
+/usr/src/tensorrt/bin/trtexec --loadEngine=100_epochs_18Jan_demo_fixed.engine --verbose
+
+
+#copy the file 
+sudo cp 100_epochs_18Jan_demo_fixed.engine ~/code
+
+Copy the file one folder to another folder 
+sudo mv ./test_fp_16.engine ~/code/
+
+#model conversion in FP16 mode
+sudo /usr/src/tensorrt/bin/trtexec --onnx=100_epochs_18Jan_demo_fixed.onnx --saveEngine=IP_card_fp16_03Feb.engine --fp16 --noTF32 --workspace=8192
+
+#Onnx model conversion from ONNX to Engine in inputFP16
+
+/usr/local/TensorRT-8.5.3/targets/x86_64-linux-gnu/bin/trtexec --onnx=/Abhirup/drone_model/demo_best.onnx --saveEngine=Basic_fp16_test.engine --fp16 --inputIOFormats=fp16:chw
+
+
+#copying file from one folder to another
+sudo mv ~/model/IP_card_fp16_ip_op14Feb.engine ~/
+
+
+#unlock jetson board power mode and clock settings
+
+sudo nvpmodel -m 0 #MAX_N mode(15w)
+sudo jetson_clocks #Max GPU/CPU clocks
+
+#To check and verify the current mode
+sudo nvpmodel -q
+
+#The command locks the CPU and GPU clocks to their maximum frequencies, and to verify it is running or not.
+
+sudo jetson_clocks -- show
+
+#convert the onnx model into engine in dynamic batch size in IP card and in FP16 input and output 
+
+/usr/src/tensorrt/bin/trtexec --onnx=Dynamic_Model_100_epochs_18Jan_v1_cp.onnx --saveEngine=Dynamic_fp16_test_20Feb.engine --fp16 --minShapes=images:1x3x640x640 --optShapes=images:8x3x640x640 --maxShapes=images:16x3x640x640 --inputIOFormats=fp16:chw --outputIOFormats=fp16:chw --workspace=4096 --best --verbose
+
+#run the following command to ensure all cores are active (0-5 cores are total)
+sudo bash -c "echo 1 > /sys/devices/system/cpu/cpu4/online"
+
+#check the status of all cores
+cat /sys/devices/system/cpu/online 
+
+/to enble the service in ipcard
+sudo systemctl start enable_ip_card_cpu_cores.service
+
+//===================================
+truncate -s 0 test_GPU.cu
+(delete the contents from the text file)
+
+
+#start the service of cpu core and clock speed of gpu IP card
+sudo systemctl start ip_card_jetson-clocks.service
+sudo systemctl start enable_ip_card_cpu_cores.service
+
+sudo jetson_clocks --fan
+
+sudo nvpmodel -m 1
+
+sudo systemctl daemon-reload
+
+nvpmodel -p --verbose | grep POWER_MODEL
+sudo nvpmodel -q
+
+sudo sync
+sudo sh -c 'echo 3> /proc/sys/vm/drop_caches'
+
+
+
+sudo jetson_clocks --restore
+
+jtop --restore
+
+sudo jetson_clocks --store /root/.jetsonclocks_conf.txtjtop 
+sudo jetson_clocks --restore /root/.jetsonclocks_conf.txtjtop 
+
+script session.log
+exit
+
+
+/usr/src/tensorrt/bin/trtexec --onnx=Dynamic_Model_100_epochs_18Jan_v1_cp.onnx --saveEngine=Dynamic_fp16_DLA_28Feb.engine --fp16 --useDLACore=0 --allowGPUFallback --minShapes=images:1x3x640x640 --optShapes=images:8x3x640x640 --maxShapes=images:16x3x640x640 --inputIOFormats=fp16:chw --outputIOFormats=fp16:chw --workspace=4096 --best --verbose --explicitBatch
+
+sudo apt clean
+#clear cache memory
+sudo rm -rf ~/.cache/*
+
+
+/usr/src/tensorrt/bin/trtexec --onnx=/home/nano/model/Dynamic_Model_100_epochs_18Jan_v1_cp.onnx --saveEngine=Dynamic_fp16_ipop_02March.engine --fp16 --minShapes=images:1x3x640x640 --optShapes=images:8x3x640x640 --maxShapes=images:8x3x640x640 --inputIOFormats=fp16:chw --outputIOFormats=fp16:chw --workspace=4096 --best --verbose
+
+#extract frames from the video file & save in the folder 
+
+ffmpeg -i input_video_file -vf "fps=1" output_frames/output_%04d.jpg
+
+ffmpeg -i IPVideo.avi -vf "fps=1" output_%04d.png
+
+#Count total number of elements inside the directory
+ls -1 | wc -l
+
+#Yolov5 model train command
+python3 train.py --img 640 --cfg /home/abhirupsinha/Desktop/p101/yolov5/yolov5/models/yolov5m.yaml --hyp /home/abhirupsinha/Desktop/p101/yolov5/yolov5/data/hyps/hyp.scratch-med.yaml --batch 12 --epochs 200 --data /home/abhirupsinha/Desktop/p101/Drone_Detection/Dataset/FinalDataset/Drone_Custom.yaml --weights yolov5m.pt --project Drone_detection_v4 --name balanced_new_drone_detection --multi-scale --cache ram --patience 30
+
+#model retrain command with additional epochs
+python3 train.py --weights /home/abhirupsinha/Desktop/p101/yolov5/yolov5/Drone/Drone_detection_v4_6March/balanced_new_drone_detection/weights/last.pt --cfg /home/abhirupsinha/Desktop/p101/yolov5/yolov5/models/yolov5m.yaml --hyp /home/abhirupsinha/Desktop/p101/yolov5/yolov5/data/hyps/hyp.scratch-med.yaml --epochs 250 --data /home/abhirupsinha/Desktop/p101/P101_Drone_Detection/Dataset/FinalDataset/Drone_Custom.yaml --batch-size 12 --project Drone_detection_v5 --name additional_train_drone_detection --multi-scale  --patience 30
+
+
+ python3 train.py --resume /home/abhirupsinha/Desktop/p101/yolov5/yolov5/Drone/Drone_detection_v4_6March/balanced_new_drone_detection/weights/last.pt --img 640 --epochs 250 --batch-size 16 --project Drone_detection_v5 --name additional_train_drone_detection --multi-scale --augment mosaic9 --mixup 0.15 --bbox_interval -1 --copy-paste 0.1
+
+#======Yolo11 custom train code================================ 
+yolo detect train model=yolo11m.pt data=/home/abhirupsinha/Desktop/P101/yolos/yolov11-main/IR_Drone_modelTraining/IRdrone.yaml epochs=100 imgsz=640 batch=8 device=0 lr0=0.002 optimizer=AdamW cos_lr=True mosaic=0.5 hsv_h=0 hsv_s=0 hsv_v=0.1 degrees=0 translate=0.1 scale=0.9 shear=0 perspective=0 flipud=0.3 fliplr=0.5 pretrained=True name=IR_DRONE_NOv06 exist_ok=True
+
+#==========Yolo BGR custom train code ====================
+yolo detect train model=yolo11m.pt data=/home/abhirupsinha/Desktop/P101/Dataset/EOTS_BGR_DATASET/New_EOTS_DATASET/eots.yaml epochs=150 imgsz=640 batch=8 device=0 lr0=0.002 optimizer=AdamW cos_lr=True mosaic=1.0 hsv_h=0.015 hsv_s=0.7 hsv_v=0.4 degrees=0.0 translate=0.1 scale=0.9 shear=0.0 perspective=0.0 flipud=0.3 fliplr=0.5 pretrained=True name=eots_DRONE_NOv12 exist_ok=True amp=True cache=True
+
+#search file in linux system
+sudo find / -name "*.engine" 2>/dev/null
+sudo find / -name "opencv_cuda" 2>/dev/null
+
+
+
+Installation of opencv in cuda on system
+
+sudo cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local/opencv4_GPU -DWITH_CUDA=ON -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=OFF -DWITH_GSTREAMER=ON -DOPENCV_EXTRA_MODULES_PATH=/home/abhirupsinha/opencv_cuda/opencv-4.x/opencv_contrib-4.x/modules -DWITH_FFMPEG=ON -DOPENCV_GENERATE_PACKAGECONFIG=ON -DWITH_DNN=OFF -DWITH_CUFFT=ON -DWITH_CUBLAS=ON -DWITH_FAST_MATH=ON
+
+
+
+Installation of opencv in cuda on Seeker~IP
+
+sudo cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local/opencv4_gpu -DWITH_CUDA=ON -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=ON -DWITH_GSTREAMER=ON -DOPENCV_EXTRA_MODULES_PATH=/home/nano/opencv-4.10.0/opencv_contrib-4.x/modules -DWITH_FFMPEG=ON -DOPENCV_GENERATE_PACKAGECONFIG=ON -DWITH_CUFFT=ON -DWITH_CUBLAS=ON -DWITH_FAST_MATH=ON -DCUDA_ARCH_BIN=7.2
+
+Installation of opencv in cuda on AGX~orin
+sudo cmake .. \
+-DCMAKE_BUILD_TYPE=Release \
+-DCMAKE_INSTALL_PREFIX=/usr/local/opencv4_gpu \
+-DOPENCV_EXTRA_MODULES_PATH=$HOME/opencv/opencv_contrib/modules \
+-DOPENCV_GENERATE_PKGCONFIG=ON \
+-DWITH_CUDA=ON \
+-DENABLE_FAST_MATH=ON \
+-DCUDA_FAST_MATH=ON \
+-DWITH_CUBLAS=ON \
+-DWITH_CUDNN=ON \
+-DOPENCV_DNN_CUDA=ON \
+-DWITH_TBB=ON \
+-DBUILD_TIFF=ON \
+-DWITH_V4L=ON \
+-DWITH_QT=OFF \
+-DWITH_GTK=ON \
+-DWITH_OPENGL=ON \
+-DOPENCV_ENABLE_NONFREE=ON \
+-DBUILD_opencv_python3=ON \
+-DBUILD_EXAMPLES=OFF \
+-DBUILD_TESTS=OFF \
+-DBUILD_opencv_dnn=ON \
+-DBUILD_opencv_cudacodec=ON \
+-DWITH_GSTREAMER=ON \
+-DWITH_FFMPEG=ON \
+-DWITH_LIBV4L=ON
+
+
+
+sudo make -j$(nproc)   # Use all available CPU cores for faster compilation
+sudo make -j4
+use dekstop mode in IP card
+
+Verify the installing 
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/cuda.hpp>
+#include <iostream>
+
+int main() {
+    if (cv::cuda::getCudaEnabledDeviceCount() > 0) {
+        std::cout << "CUDA is available!" << std::endl;
+    } else {
+        std::cout << "CUDA is not available." << std::endl;
+    }
+    return 0;
+}
+
+sudo make install
+
+Giving permission IP card 
+sudo chown -R nano /home/nano/model
+
+#for convert the model for DLA
+/usr/src/tensorrt/bin/trtexec --onnx=100_epochs_18Jan.onnx --saveEngine=DLA_fp16_18March.engine --fp16 --useDLACore=0 --allowGPUFallback --inputIOFormats=fp16:chw --outputIOFormats=fp16:chw --workspace=4096 --verbose
+
+copy the from to home
+sudo cp ./DLA_fp16_19March.engine ~/
+
+
+#zip folder 
+zip folder_name.zip folder_name
+
+
+==========================================================
+sudo dhclient -r eth0
+ sudo nmcli connection down eth0_static 
+sudo nmcli connection down eth0_dhcp 
+
+sudo nmcli connection up eth0_dhcp
+systemctl restart network-manager.service 
+
+#opencv_cuda gpu lib and include path
+/usr/local/opencv4_GPU/include/opencv4
+/usr/local/opencv4_GPU/lib
+
+//trt version with custom path 
+cat /usr/local/TensorRT-8.5.3.1/include/NvInferVersion.h
+
+
+//moving multiple files from 1 folder to another
+mv ./plane_img/*.jpg ./img_train/ 2>/dev/null
+
+
+nano ~/.bashrc
+
+
+
+ //cuda c++ compile command in local system
+nvcc -std=c++17 -I/usr/local/cuda-11.8/include -I /usr/local/cuda-11.8/include -I /usr/local/TensorRT-8.5.3.1/include -L /usr/local/cuda-11.8/lib64 -L /usr/local/cudnn-8.6.0/lib -L /usr/local/TensorRT-8.5.3.1/lib -I /usr/local/opencv4_GPU/include/opencv4 -L /usr/local/opencv4_GPU/lib -lopencv_stitching -lopencv_aruco -lopencv_bgsegm -lopencv_bioinspired -lopencv_ccalib -lopencv_dnn_objdetect -lopencv_dnn_superres -lopencv_dpm -lopencv_highgui -lopencv_face -lopencv_freetype -lopencv_fuzzy -lopencv_hdf -lopencv_hfs -lopencv_img_hash -lopencv_line_descriptor -lopencv_quality -lopencv_reg -lopencv_rgbd -lopencv_saliency -lopencv_shape -lopencv_stereo -lopencv_structured_light -lopencv_phase_unwrapping -lopencv_superres -lopencv_optflow -lopencv_surface_matching -lopencv_tracking -lopencv_datasets -lopencv_text -lopencv_dnn -lopencv_plot -lopencv_ml -lopencv_videostab -lopencv_videoio -lopencv_viz -lopencv_ximgproc -lopencv_video -lopencv_xobjdetect -lopencv_objdetect -lopencv_calib3d -lopencv_imgcodecs -lopencv_features2d -lopencv_flann -lopencv_xphoto -lopencv_photo -lopencv_imgproc -lopencv_core -lopencv_cudaimgproc -lopencv_cudaarithm -lopencv_cudawarping -lopencv_cudafilters -lopencv_cudafeatures2d -lopencv_cudabgsegm -lopencv_cudacodec -lnvinfer -lcudart -lnvinfer -lnvonnxparser -lcudnn -lnvinfer_plugin -lcuda -lcudart -o test_gpu_preprocessing detection_v2.cu 
+ 
+ 
+//GPU Based compilation in c++
+g++ -o video_read ReadVideo.cpp -std=c++17 -I/usr/local/cuda-11.8/include -I /usr/local/TensorRT-8.5.3.1/include -L /usr/local/cuda-11.8/lib64 -L /usr/local/cudnn/lib -L /usr/local/TensorRT-8.5.3.1/lib -I /usr/local/opencv4_GPU/include/opencv4 -L /usr/local/opencv4_GPU/lib -lopencv_stitching -lopencv_aruco -lopencv_bgsegm -lopencv_bioinspired -lopencv_ccalib -lopencv_dnn_objdetect -lopencv_dnn_superres -lopencv_dpm -lopencv_highgui -lopencv_face -lopencv_freetype -lopencv_fuzzy -lopencv_hfs -lopencv_img_hash -lopencv_line_descriptor -lopencv_quality -lopencv_reg -lopencv_rgbd -lopencv_saliency -lopencv_shape -lopencv_stereo -lopencv_structured_light -lopencv_phase_unwrapping -lopencv_superres -lopencv_optflow -lopencv_surface_matching -lopencv_tracking -lopencv_datasets -lopencv_text -lopencv_dnn -lopencv_plot -lopencv_ml -lopencv_videostab -lopencv_videoio  -lopencv_ximgproc -lopencv_video -lopencv_xobjdetect -lopencv_objdetect -lopencv_calib3d -lopencv_imgcodecs -lopencv_features2d -lopencv_flann -lopencv_xphoto -lopencv_photo -lopencv_imgproc -lopencv_core -lopencv_cudaimgproc -lopencv_cudaarithm -lopencv_cudawarping -lopencv_cudafilters -lopencv_cudafeatures2d -lopencv_cudabgsegm -lopencv_cudacodec -lcudart -lcudnn -lcuda
+ 
+ 
+ 
+ 
+ 
+ //==============Tar the file 
+ tar -cJvf IPCardTrack_copy.tar.xz ./IPCardTrack
+ 
+ 
+//===========#untar the file====================
+tar -xf ./opencv_contrib-4.x.tar.xz 
+
+
+//==================FileMove==================
+mv ./opencv-4.10.0 ~/OpenCV
+mv ./opencv_contrib-4.x ~/OpenCV/Contrib
+
+make clean
+make -j24
+
+//=======extarcting frames from video files ============
+ffmpeg -i IPVideo.avi -vf fps=1 output_folder/frame_%04d.jpg
+
+//=======================================
+/usr/local/cuda-11.4/extras/demo_suite/deviceQuery
+(to check the GPU compute capability 8.6 use -arch=sm_86)
+
+
+//====================CHECK_PID==========
+ sudo lsof -i :9554
+ 
+ 
+Using column to format in terminal  
+//column -s, -t < results.csv | less -#2
+
+
+
+head -n 1 /usr/local/bin/yolo
+
+ls -l /usr/bin/python3
+
+sudo cat /usr/local/bin/yolo
+
+
+//Check any python process is running or not in the system 
+ps aux | grep python
+
+
+
+//For no need to change the ownership of the 
+sudo chown -R abhirupsinha:abhirupsinha FOLDER_NAME
+
+And afterwards sudo chmod -R 2775 FOLDER_NAME/
+
+
+//orin board
+sudo ssh -x agxorin@172.17.212.250
+
+sudo scp -r /path/file_folder agxorin@172.17.212.250:~/
+
+
+sudo scp -r agxorin@172.17.212.250:/home/agxorin/projects/Detection/IPCard-V1.5.0/Res/21Feb26/ ./
+
+//ground_eots
+scp nvidia@192.168.55.1:/home/nvidia/AGX_Offline_Kit/02_OpenCV/opencv4_gpu_4.10.0_cuda.tar.gz ./
+
+//save the ping file
+ping 192.168.55.1 > test_ping.txt
+
+ping 192.168.55.1 | tee ping_resTest.txt
+
+pyinstaller --onefile ./rtsp_vidRead.py
+
+Convert the .pt model into onnx model from yolov11 oneards version
+yolo export model=/home/abhirupsinha/Desktop/P101/yolos/yolov26/runs/detect/train/weights/best_15March_2026.pt format=onnx imgsz=640
+
+//Convert the onnx model into simplified version
+ onnxsim /home/abhirupsinha/Desktop/P101/yolos/yolov26/runs/detect/train/weights/best_15March_2026_00.onnx /home/abhirupsinha/Desktop/P101/yolos/yolov26/runs/detect/train/weights/simple_model_00.onnx
+ 
+ 
+ yolo train \
+model=yolo11s.pt \
+data=/home/abhirupsinha/Desktop/P101/codes/py_scripts/auto-label/my_dataset/eots_dataset.yaml \
+epochs=150 \
+imgsz=640 \
+batch=16 \
+device=0 \
+workers=8 \
+patience=50 \
+optimizer=AdamW \
+cos_lr=True
+
+===
+yolo train \
+model=yolo11s.pt \
+data=/home/abhirupsinha/Desktop/P101/codes/py_scripts/auto-label/my_dataset/eots_dataset.yaml \
+epochs=150 \
+imgsz=640 \
+batch=16 \
+device=0 \
+workers=8 \
+optimizer=AdamW \
+lr0=0.003 \
+lrf=0.01 \
+cos_lr=True \
+patience=40 \
+cache=disk \
+multi_scale=True \
+mosaic=1.0 \
+close_mosaic=20 \
+mixup=0.15 \
+copy_paste=0.2 \
+hsv_h=0.015 \
+hsv_s=0.7 \
+hsv_v=0.4 \
+fliplr=0.5 \
+translate=0.1 \
+scale=0.5
+===
+
+//============yolov26===============
+
+yolo train \
+model=yolo26m.pt \
+data=/home/abhirupsinha/Desktop/P101/yolos/yolov26/eots_dataset.yaml \
+epochs=150 \
+imgsz=768 \
+batch=16 \
+optimizer=AdamW \
+lr0=0.003 \
+lrf=0.01 \
+cos_lr=True \
+device=0 \
+cache=disk \
+workers=8 \
+mosaic=1.0 \
+close_mosaic=20 \
+mixup=0.15 \
+copy_paste=0.2 \
+multi_scale=True \
+hsv_h=0.015 \
+hsv_s=0.7 \
+hsv_v=0.4 \
+fliplr=0.5 \
+translate=0.1 \
+scale=0.5 \
+degrees=5 \
+patience=40
+ 
+ //To find out the vit models from the local system
+ls -l ~/.cache/huggingface/hub/models--*/snapshots/*/
+
+//Check the installed path in the local system
+python3 -c "import scipy; print(scipy.__path__)"
+
+//Information regarding the downloaded dataset in the local system
+ls -ld ~/.cache/scipy-data
+
+//Find which directory consuming much memory space
+ sudo du -h --max-depth=1 ./ | sort -rh
+ 
+ sudo du -ah / | sort -rh | head -n 10
+ 
+ g++ --version
+ To know the C++ standards are the in system using during compiling 
+ g++ -dM -E -x c++ /dev/null | grep __cplusplus
+ 
+ 
+ // To varify the check sum
+sha256sum ./BinaryFile
+
+//TO check does in the Src folder has main or not
+grep -R  "int main" -n Src
+
+
+echo 'export PATH=$PATH:/usr/local/TensorRT-8.5.3.1/targets/x86_64-linux-gnu/bin' >> ~/.bashrc && source ~/.bashrc
+
+#Find out the kyeword in the code files in the directory
+grep -rn "search keyword in the directories"
+
+
+ls ~/.local/lib/python3.9/site-packages
+
+
+cat /etc/nv_tegra_release
+
+v4l2-ctl --list-devices
+
+Check camera devices:v4l2-ctl --list-devices
+
+Check USB devices:lsusb
+
+Check serial devices:ls /dev/tty*
+
+
+Check Connected Serial Devices
+
+ls /dev/ttyUSB*
+ls /dev/ttyACM*
+
+
+Then check kernel detection:
+dmesg | grep tty or dmesg | tail -50
+
+//While connected with the orion carrier board 
+| Interface         | Status           | IP Address       | Purpose / Observation                             |
+| ----------------- | ---------------- | ---------------- | ------------------------------------------------- |
+| `eno1`            | UP (not RUNNING) | No IPv4          | Ethernet interface present but not assigned an IP |
+| `enp1s0`          | UP + RUNNING     | `10.10.30.10`    | Main active network interface                     |
+| `enx9a87275186d2` | UP + RUNNING     | `192.168.55.100` | USB Ethernet / adapter interface                  |
+| `eth0`            | UP + RUNNING     | No IPv4          | Another Ethernet interface, only IPv6             |
+| `lo`              | LOOPBACK         | `127.0.0.1`      | Localhost                                         |
+
+
+
+
+//To run the ollama model in terminal
+ollama run openhermes:7b-mistral-v2-q4_K_M
+
+
+//Automate the login in the jetson boards
+
+1) ssh-keygen -t ed25519
+2) press enter , enter & enter 
+
+Until and unless don't see this 
+Your identification has been saved in /home/abhirupsinha/.ssh/id_ed25519
+Your public key has been saved in /home/abhirupsinha/.ssh/id_ed25519.pub
+The key fingerprint is:
+SHA256:EVpkZrmxbaMqQxSPbh0ito0uhzYKhRF/LwIK+AfDyyo abhirupsinha@AIR-HYD-RD-ASL20
+The key's randomart image is:
++--[ED25519 256]--+
+|.      .B.       |
+|.+  .  *o.       |
+|= = .+. .=       |
+|o*o=+.o o.+      |
+|o.*Boo..So .     |
+| ooo=.. .        |
+|Eo o   .         |
+|=oo o .          |
+|+o.  o           |
++----[SHA256]-----+
+
+3) For the verification 
+ -> ls ~/.ssh
+id_ed25519  id_ed25519.pub  known_hosts
+
+4) copy the file into the board 
+->  ssh-copy-id nvidia@192.168.55.1
+
+5) for the verification puprose will see 
+->Number of key(s) added: 1
+
+
+sudo ssh-keygen -f "/root/.ssh/known_hosts" -R "192.168.55.1"
+ 
+ //Total boot up time 
+ systemd-analyze
+
+ it will display like this 
+ ###################
+ Startup finished in 7.767s (kernel) + 7.558s (userspace) = 15.325s 
+ graphical.target reached after 7.534s in userspace
+ ###################
+ Kernel time = time spent loading the linux terminal 
+ Userspace time = time spent starting service and application
+ Total time = kernel + userspace 	
+ 
+ //help to identify the bottleneck	
+ systemd-analyze blame
+ 
+ //show boot-up time critical path
+ systemd-analyze critical-chain	
+	
+	
+
+  journalctl -b
+
+
+//Virtaul env path for the agx orin board
+source ~/venvs/jetson-gpu/bin/activate
+
+
+
+zip -r AGX_Offline_Kit.zip ./AGX_Offline_Kit
+
+
+dpkg -l | grep tensorrt
+dpkg -l | grep nvinfer
+
+
+
+sudo find / -xdev -type f -exec du -h {} + 2>/dev/null | sort -rh | head -n 20
+
+
+sudo du -h --max-depth=2 /var | sort -rh | head -n 15
+
+
+sudo snap set system refresh.retain=2
+
+
+
+set -eu
+LANG=en_US.UTF-8
+snap list --all | awk '/disabled/{print $1, $3}' |
+while read snapname revision; do
+    echo "Removing $snapname (revision $revision)..."
+    sudo snap remove "$snapname" --revision="$revision"
+done
